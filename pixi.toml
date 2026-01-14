@@ -1,0 +1,48 @@
+[workspace]
+authors = ["wangyibin <yibinwang96@outlook.com>"]
+channels = ["conda-forge"]
+description = "A lightweight wrapper to run minimap2 (v2.30) alignments directly on BAM file"
+name = "bammap2"
+platforms = ["linux-64", "linux-aarch64"]
+version = "0.1.0"
+
+[system-requirements]
+linux = "3.10.0"
+libc = "2.17"
+
+[tasks]
+libclang = "export LD_LIBRARY_PATH=/usr/lib/clang-private:$CONDA_PREFIX/lib:$LD_LIBRARY_PATH"
+build-release = { cmd = "CC=/usr/bin/gcc CXX=/usr/bin/g++ cargo build --release" }
+install = {cmd = "cargo install --path ./ --locked"}
+
+
+
+[feature.build.dependencies]
+# Needed for building
+compilers = ">=1.9.0,<2"
+git = ">=2.46.0,<3"
+openssl = "3.*"
+pkg-config = "0.29.*"
+rust = ">=1.91.1,<1.92"
+rust-src = ">=1.91.1,<1.92"
+zlib = ">=1.3.1,<2"
+cmake = ">=4.0.2,<5"
+libclang = ">=14.0,<15.0"
+llvmdev = ">=14.0.6,<19"
+cxx-compiler = ">=1.9.0,<2"
+
+[feature.build.target.linux-aarch64.dependencies]
+clang = ">=14.0.0,<15.0"
+
+
+
+[feature.build.target.linux-64.dependencies]
+clang = ">=18.1.8,<19.0"
+compilers = ">=1.6.0"
+make = ">=4.3,<5"
+mold = ">=2.33.0,<3.0"
+
+[environments]
+default = {features = [
+    "build",
+]}

@@ -1,0 +1,1 @@
+bammap2 test.fa test.bam -o output.bam

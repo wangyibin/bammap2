@@ -1,0 +1,54 @@
+[package]
+name = "bammap2"
+version = "0.1.0"
+edition = "2021"
+description = "A lightweight wrapper to run minimap2 (v2.30) alignments directly on BAM file"
+keywords = ["alignment", ]
+readme = "README.md"
+repository = "https://github.com/wangyibin/bammap2" 
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[[bin]]
+name = "bammap2"
+path = "src/main.rs"
+
+[profile.dev]
+opt-level = 1
+overflow-checks = false
+
+
+[dependencies]
+anyhow = "1.0.70"
+bio = { version = "1.5.0" }
+bloomfilter = { version = "2.0.0" }
+clap = { version = "4.4.10" }
+chrono = { version = "0.4.24" }
+crossbeam = "0.8.4"
+crossbeam-channel = "0.5.15"
+csv = { version = "1.1.6" }
+flate2 = {version = "1.0.28", default-features = false}
+gzp = { version = "0.11.3"}
+env_logger = { version = "0.10.0" }
+minimap2 = { version = "0.1.28+minimap2.2.30",  features = ["simde", "zlib-ng", "htslib"]}
+minimap2-sys = {version = "0.1.24"}
+itertools = { version = "0.10.5"}
+log = { version = "0.4.17" }
+libc = { version = "0.2" }
+hashbrown = { version = "0.14.3", features=[ "rayon" ]}
+jemallocator = { version = "0.5.4 " }
+rayon = { version = "1.11.0" }
+rust-htslib = { version = "0.51.0", default-features = false }
+serde = { version = "1.0", features = ["derive"]}
+seq_io = { version = "0.4.0-alpha.0" }
+
+
+[profile.release]
+opt-level = 'z'
+lto = true
+codegen-units  = 1
+strip = "symbols"
+
+# opt-level = 3
+# lto = "fat"
+# codegen-units  = 1

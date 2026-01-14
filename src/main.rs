@@ -49,13 +49,17 @@ fn main() {
     let gap_extension = matches.get_one::<(i32, Option<i32>)>("gap_extension").copied();
     let z_drop = matches.get_one::<(i32, Option<i32>)>("z_drop").copied();
     let min_dp_max = matches.get_one::<i32>("min_dp_max").copied();
+    
+    let max_qlen = matches.get_one::<i32>("max_qlen").copied();
     let batch_size = matches.get_one::<u64>("batch_size").unwrap();
     let soft_clip = matches.get_flag("soft_clip");
     let secondary = matches.get_one::<String>("secondary").unwrap();
     let best_n = matches.get_one::<i32>("best_n").copied();
     let pri_ratio = matches.get_one::<f32>("pri_ratio").copied();
     let mini_batch_size = matches.get_one::<i64>("mini_batch_size").unwrap();
+    let seed = matches.get_one::<i32>("seed").copied();
     let preset = matches.get_one::<String>("preset").unwrap();
+
     let threads = matches.get_one::<usize>("threads").unwrap();
 
     rayon::ThreadPoolBuilder::new().num_threads(*threads).build_global().unwrap();
@@ -77,7 +81,9 @@ fn main() {
             gap_open, gap_extension, z_drop,
             min_dp_max,
             best_n, pri_ratio,
+            max_qlen,
             *mini_batch_size,
+            seed,
             preset.as_str(),
             *threads
         ).unwrap();

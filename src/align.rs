@@ -21,66 +21,6 @@ use std::path::Path;
 use rayon::prelude::*;
 
 
-// fn build_bam_header_from_fai(reference_fasta: &str) -> AnyResult<Header> {
-//     let fai_path = format!("{reference_fasta}.fai");
-//     if !Path::new(&fai_path).exists() {
-//         return Err(anyhow!(
-//             "FASTA index not found: {fai_path}. Please run: samtools faidx {reference_fasta}"
-//         ));
-//     }
-
-//     let f = common_reader(&fai_path);
-
-//     let mut header = Header::new();
-
-//     for (lineno, line) in f.lines().enumerate() {
-//         let line = line?;
-//         if line.trim().is_empty() {
-//             continue;
-//         }
-//         let cols: Vec<&str> = line.split('\t').collect();
-//         if cols.len() < 2 {
-//             return Err(anyhow!("Bad .fai line {}: {}", lineno + 1, line));
-//         }
-//         let name = cols[0];
-//         let len: i64 = cols[1]
-//             .parse()
-//             .map_err(|_| anyhow!("Bad length in .fai line {}: {}", lineno + 1, line))?;
-
-//         let mut sq = HeaderRecord::new(b"SQ");
-//         sq.push_tag(b"SN", name);
-//         sq.push_tag(b"LN", &len.to_string());
-//         sq.push_tag(b"UR", reference_fasta);
-
-//         header.push_record(&sq);
-//     }
-
-  
-//     let mut pg = HeaderRecord::new(b"PG");
-//     pg.push_tag(b"ID", "bamaligner");
-//     pg.push_tag(b"PN", "bamaligner");
-//     header.push_record(&pg);
-
-//     Ok(header)
-// }
-
-// fn build_tid_map_from_fai(reference_fasta: &str) -> AnyResult<HashMap<String, i32>> {
-//     let fai_path = format!("{reference_fasta}.fai");
-//     let r = common_reader(&fai_path);
-//     let r = BufReader::new(r);
-
-//     let mut map = HashMap::new();
-//     let mut tid: i32 = 0;
-//     for line in r.lines() {
-//         let line = line?;
-//         if line.trim().is_empty() { continue; }
-//         let name = line.split('\t').next().unwrap();
-//         map.insert(name.to_string(), tid);
-//         tid += 1;
-//     }
-//     Ok(map)
-// }
-
 fn parse_cigar_string(cigar: &str) -> AnyResult<CigarString> {
     let mut ops: Vec<Cigar> = Vec::new();
     let mut num: u32 = 0;
@@ -199,31 +139,6 @@ fn mm_abs_to_deltas(abs: &[i64]) -> Vec<i64> {
     }
     deltas
 }
-
-// fn reverse_mm_part(part: &str, seq_fwd_oriented: &[u8]) -> AnyResult<String> {
-//     let (base, header, deltas) = parse_mm_part(part)?;
-//     let total = count_base(seq_fwd_oriented, base) as i64;
-
-//     if total <= 0 || deltas.is_empty() {
-//         return Ok(format!("{header}"));
-//     }
-
-//     let mut abs = mm_deltas_to_abs(&deltas);
-
-//     for x in abs.iter_mut() {
-//         *x = (total - 1) - *x;
-//     }
-//     abs.sort_unstable();
-
-//     let new_deltas = mm_abs_to_deltas(&abs);
-//     let mut out = String::new();
-//     out.push_str(&header);
-//     for d in new_deltas {
-//         out.push(',');
-//         out.push_str(&d.to_string());
-//     }
-//     Ok(out)
-// }
 
 fn reverse_mm_part(part: &str, seq_fwd_oriented: &[u8]) -> AnyResult<String> {
     let (base, header, deltas) = parse_mm_part(part)?;
@@ -508,7 +423,9 @@ pub fn align(reference: &String,
             min_dp_max: Option<i32>,
             best_n: Option<i32>, 
             pri_ratio: Option<f32>, 
+            max_qlen: Option<i32>,
             mini_batch_size: i64,
+            seed: Option<i32>,
             preset: &str,
             threads: usize,
         ) -> AnyResult<()>  {
@@ -613,18 +530,25 @@ pub fn align(reference: &String,
     if let Some(pri_ratio) = pri_ratio {
         aligner.mapopt.pri_ratio = pri_ratio;
     }
-  
+
+    if let Some(max_qlen) = max_qlen {
+        aligner.mapopt.max_qlen = max_qlen;
+    }
+    
+    if let Some(seed) = seed {
+        aligner.mapopt.seed = seed;
+    }
+    
     let idx = aligner.idx.clone().unwrap();
 
 
-    let mut header = Header::new();
+    let header = Header::new();
     let mmindex = MMIndex::from(&aligner);
     let header = mmindex.get_header();
     let mut tid_map: HashMap<String, i32> = HashMap::new();
     for (i, seq) in mmindex.seqs().iter().enumerate() {
         tid_map.insert(seq.name.clone(), i as i32);
     }
-
 
     let mut writer = Writer::from_path(output_bam, &header, bam::Format::Bam)?;
     let _ = writer.set_threads((threads / 4).max(1));
@@ -633,13 +557,6 @@ pub fn align(reference: &String,
 
     thread::scope(|s| {
         s.spawn(move || {
-            
-            // bam.records().par_bridge().for_each_with(tx, |tx, r| {
-            //     if let Ok(rec) = r {
-            //         let res = process_single_read(&rec, &aligner, &tid_map);
-            //         let _ = tx.send(res);
-            //     }
-            // });
             for bam_path in input_bams {
 
                 log::info!("Starting alignment for: {}", bam_path);
@@ -659,7 +576,6 @@ pub fn align(reference: &String,
                 });
             }
         });
-
     
         let mut count = 0;
         for result in rx {
@@ -676,66 +592,6 @@ pub fn align(reference: &String,
 
         Ok::<(), anyhow::Error>(())
     })?;
-
-
-    // let (tx, rx) = mpsc::sync_channel(threads * 2);
-    // thread::spawn(move || {
-    //     bam.records().par_bridge().for_each(|r| {
-    //         if let Ok(rec) = r {
-    //             let res = process_single_read(&rec, &aligner, &tid_map);
-    //             tx.send(res).ok();
-    //         }
-    //     });
-    // });
-
-    // let mut count = 0;
-    // while let Ok(res) = rx.recv() {
-    //     for out_rec in res? {
-    //         writer.write(&out_rec)?;
-    //     }
-    //     count += 1;
-    //     if count % mini_batch_size == 0 { log::info!("Mapped {} reads", count); }
-    // }
-
-    // let batch_size = mini_batch_size as usize;
-    // let mut batch: Vec<Record> = Vec::with_capacity(batch_size);
-
-    // for r in bam.records() {
-    //     let original_record = r?;
-    //     batch.push(original_record);
-
-    //     if batch.len() >= batch_size {
-    //         let results: Vec<AnyResult<Vec<Record>>> = batch
-    //             .par_iter()
-    //             .map(|rec| process_single_read(rec, &aligner, &tid_map))
-    //             .collect();
-
-    //         for res in results {
-    //             let output_records = res?; 
-    //             for out_rec in output_records {
-    //                 writer.write(&out_rec)?;
-    //             }
-    //         }
-    //         log::info!("mapped {} sequences", batch_size);
-    //         batch.clear();
-    //     }
-    // }
-
-    // if !batch.is_empty() {
-    //     let results: Vec<AnyResult<Vec<Record>>> = batch
-    //         .par_iter()
-    //         .map(|rec| process_single_read(rec, &aligner, &tid_map))
-    //         .collect();
-
-    //     for res in results {
-    //         let output_records = res?;
-    //         for out_rec in output_records {
-    //             writer.write(&out_rec)?;
-    //         }
-    //     }
-        
-    //     log::info!("mapped {} sequences", batch.len());
-    // }
 
     Ok(())
 

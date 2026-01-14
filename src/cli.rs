@@ -1,8 +1,5 @@
-use std::ffi::OsString;
-use std::path::PathBuf;
 
-use clap::{arg, Arg, ArgAction, Command, 
-            Subcommand, value_parser};
+use clap::{arg, Arg, ArgAction, Command, value_parser};
 
 const VERSION: &str = "0.1.0";
 
@@ -222,6 +219,7 @@ pub fn cli() -> Command {
         )
 
         .next_help_heading("Input/Output")
+        
         .arg(
             Arg::new("output_bam")
                 .short('a')
@@ -237,19 +235,34 @@ pub fn cli() -> Command {
                 .default_value("-")
                 .value_name("FILE"),
         )
-        .arg(
-            Arg::new("secondary")
-                .long("secondary")
-                .help("Whether to output secondary alignments" )
-                .value_parser(["yes", "no"])
-                .default_value("yes")
-        )
+
         .arg(
             Arg::new("soft_clip")
                 .short('Y')
                 .help("use soft clipping for supplementary alignments")
                 .action(ArgAction::SetTrue),
                 
+        )
+        .arg(
+            Arg::new("seed")
+                .long("seed")
+                .help("Integer seed for randomizing equally best hits. Minimap2 hashes INT and read name when choosing between equally best hits. [11]" )
+                .value_parser(value_parser!(i32))
+                .value_name("INT")
+        )
+        .arg(
+            Arg::new("max_qlen")
+                .long("max-qlen")
+                .help("skip reads longer than INT [0 (disabled)]")
+                .value_parser(value_parser!(i64))
+                .value_name("INT")
+        )
+        .arg(
+            Arg::new("secondary")
+                .long("secondary")
+                .help("Whether to output secondary alignments" )
+                .value_parser(["yes", "no"])
+                .default_value("yes")
         )
         .arg(
             Arg::new("threads")

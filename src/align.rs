@@ -278,7 +278,10 @@ pub fn align(reference: &String,
             batch_size: u64,
             soft_clip: bool, 
             secondary: bool,
-            rank_frac: Option<f32>,
+            mask_level: Option<f32>,
+            max_gap: Option<i32>,
+            max_gap_ref: Option<i32>,
+            max_frag_len: Option<i32>,
             bw: Option<(i32, Option<i32>)>,
             min_cnt: Option<i32>,
             min_chain_score: Option<i32>,
@@ -333,10 +336,20 @@ pub fn align(reference: &String,
     aligner.idxopt.batch_size = batch_size;
     aligner.idxopt.mini_batch_size = mini_batch_size;
 
-    if let Some(rf) = rank_frac {
-        aligner.mapopt.rank_frac = rf;
+    if let Some(f) = mask_level {
+        aligner.mapopt.mask_level = f;
     }
 
+    if let Some(max_gap) = max_gap {
+        aligner.mapopt.max_gap = max_gap;
+    }
+
+    if let Some(max_gap_ref) = max_gap_ref {
+        aligner.mapopt.max_gap_ref = max_gap_ref;
+    }
+    if let Some(max_frag_len) = max_frag_len {
+        aligner.mapopt.max_frag_len = max_frag_len;
+    }
     if let Some((bw_val, bw2_opt)) = bw {
         aligner.mapopt.bw = bw_val;
         

@@ -38,7 +38,10 @@ fn main() {
     let is_hpc = matches.get_flag("hpc");
     let kmer = matches.get_one::<i16>("kmer").copied();
     let window = matches.get_one::<i16>("window").copied();
-    let rank_fraction = matches.get_one::<f32>("rank_frac").copied();
+    let mask_level = matches.get_one::<f32>("mask_level").copied();
+    let max_gap = matches.get_one::<i32>("max_gap").copied();
+    let max_gap_ref = matches.get_one::<i32>("max_gap_ref").copied();
+    let max_frag_len = matches.get_one::<i32>("max_frag_len").copied();
     let bw = matches.get_one::<(i32, Option<i32>)>("bw").copied();
     let min_cnt = matches.get_one::<i32>("min_cnt").copied();
     let min_chain_score = matches.get_one::<i32>("min_chain_score").copied();
@@ -75,7 +78,11 @@ fn main() {
     align(reference, &queries, output,
             kmer, window, *batch_size,
             soft_clip, secondary,
-            rank_fraction, bw, min_cnt,
+            mask_level, 
+            max_gap, 
+            max_gap_ref,
+            max_frag_len,
+            bw, min_cnt,
             min_chain_score,
             matching_score, mismatch_penalty,
             gap_open, gap_extension, z_drop,

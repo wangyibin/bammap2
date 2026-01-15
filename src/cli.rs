@@ -1,7 +1,19 @@
 
-use clap::{arg, Arg, ArgAction, Command, value_parser};
+use clap::{arg, Arg, ArgAction, 
+            builder::{
+                styling::{AnsiColor, Effects},
+                Styles,
+            },
+            Command, 
+            value_parser};
 
 const VERSION: &str = "0.1.0";
+
+const STYLES: Styles = Styles::styled()
+    .header(AnsiColor::Green.on_default().effects(Effects::BOLD))
+    .usage(AnsiColor::Green.on_default().effects(Effects::BOLD))
+    .literal(AnsiColor::Cyan.on_default().effects(Effects::BOLD))
+    .placeholder(AnsiColor::Yellow.on_default());
 
 fn parse_si_size_u64(s: &str) -> Result<u64, String> {
     let s = s.trim();
@@ -43,6 +55,26 @@ fn parse_si_size_i64(s: &str) -> Result<i64, String> {
     Ok((num * multiplier) as i64)
 }
 
+fn parse_si_size_i32(s: &str) -> Result<i32, String> {
+    let s = s.trim();
+    if s.is_empty() {
+        return Err("Empty input".to_string());
+    }
+
+    let last = s.chars().last().unwrap();
+    let (num_str, multiplier) = match last {
+        'G' | 'g' => (&s[..s.len() - 1], 1_000_000_000.0),
+        'M' | 'm' => (&s[..s.len() - 1], 1_000_000.0),
+        'K' | 'k' => (&s[..s.len() - 1], 1_000.0),
+        _ => (s, 1.0),
+    };
+
+    let num = num_str.parse::<f64>()
+        .map_err(|_| format!("Invalid number format: {}", s))?;
+
+    Ok((num * multiplier) as i32)
+}
+
 
 fn parse_int_pair(s: &str) -> Result<(i32, Option<i32>), String> {
     let s = s.trim();
@@ -67,14 +99,14 @@ fn parse_int_pair(s: &str) -> Result<(i32, Option<i32>), String> {
 pub fn cli() -> Command {
     Command::new("bammap2")
         .version(VERSION)
+        .styles(STYLES)
         .about("A lightweight wrapper to run minimap2 (v2.30) alignments directly on BAM file")
         .arg(
             arg!(<reference> "target.fa or target.idx" )
         )
         .arg(
-            // arg!(<query> "query sequences with BAM Format")
             Arg::new("query")
-                .help("query sequences with BAM Format")
+                .help("query sequences with BAM Format, only support BAM files")
                 .required(true)
                 .num_args(1..)
         )
@@ -111,16 +143,34 @@ pub fn cli() -> Command {
         )
         .next_help_heading("Mapping")
         .arg(
-            Arg::new("rank_frac")
+            Arg::new("mask_level")
                 .short('f')
                 .help("filter out top FLOAT fraction of repetitive minimizers [0.0002]")
                 .value_parser(value_parser!(f32))
                 .value_name("FLOAT")
             
         )
-        // .arg(
-        //     Arg::new("")
-        // )
+        .arg(
+            Arg::new("max_gap")
+                .short('g')
+                .help("stop chain enlongation if there are no minimizers in INT-bp [5000]")
+                .value_parser(parse_si_size_i32)
+                .value_name("INT")
+        )
+        .arg(
+            Arg::new("max_gap_ref")
+                .short('G')
+                .help("max intron length (effective with -xsplice; changing -r) [200k]")
+                .value_parser(parse_si_size_i32)
+                .value_name("INT")
+        )
+        .arg(
+            Arg::new("max_frag_len")
+                .short('F')
+                .help("max fragment length (effective with -xsr or in the fragment mode) [800]")
+                .value_parser(parse_si_size_i32)
+                .value_name("INT")
+        )
         .arg(
             Arg::new("bw")
                 .short('r')
@@ -213,7 +263,7 @@ pub fn cli() -> Command {
         .arg(
             Arg::new("output")
                 .short('o')
-                .help("output file")
+                .help("output file path, currently only support output in BAM formst [stdout]")
                 .value_parser(value_parser!(String))
                 .default_value("-")
                 .value_name("FILE"),

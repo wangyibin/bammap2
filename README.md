@@ -15,7 +15,7 @@ Usage: bammap2 [OPTIONS] <reference> <query>...
 
 Arguments:
   <reference>  target.fa or target.idx
-  <query>...   query sequences with BAM Format
+  <query>...   query sequences with BAM Format, only support BAM files
 
 Options:
   -h, --help     Print help
@@ -28,6 +28,9 @@ Indexing:
 
 Mapping:
   -f <FLOAT>          filter out top FLOAT fraction of repetitive minimizers [0.0002]
+  -g <INT>            stop chain enlongation if there are no minimizers in INT-bp [5000]
+  -G <INT>            max intron length (effective with -xsplice; changing -r) [200k]
+  -F <INT>            max fragment length (effective with -xsr or in the fragment mode) [800]
   -r <INT,[INT]>      chaining/alignment bandwidth and long-join bandwidth [500,20000]
   -n <INT>            minimal number of minimizers on a chain [3]
   -m <INT>            minimal chaining score (matching bases minus log gap penalty) [40]
@@ -43,11 +46,13 @@ Alignments:
   -s <INT>            minimal peak DP alignment score [80]
 
 Input/Output:
-  -o <FILE>                    output file [default: -]
-      --secondary <secondary>  Whether to output secondary alignments [default: yes] [possible values: yes, no]
+  -o <FILE>                    output file path, currently only support output in BAM formst [stdout] [default: -]
   -Y                           use soft clipping for supplementary alignments
+      --seed <INT>             Integer seed for randomizing equally best hits. Minimap2 hashes INT and read name when choosing between equally best hits. [11]
+      --max-qlen <INT>         skip reads longer than INT [0 (disabled)]
+      --secondary <secondary>  Whether to output secondary alignments [default: yes] [possible values: yes, no]
   -t <INT>                     number of threads [default: 8]
-  -K <STR>                     minibatch size for mapping [500M] [default: 10k]
+  -K <STR>                     minibatch size logging when mapping [default: 10k]
 
 Presets:
   -x <STR>      - lr:hq - accurate long reads (error rate <1%) against a reference genome

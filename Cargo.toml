@@ -41,3 +41,10 @@ strip = "symbols"
 # opt-level = 3
 # lto = "fat"
 # codegen-units  = 1
+
+[profile.dist]
+inherits = "release"
+lto = true
+opt-level = "z" 
+strip = "symbols"
+codegen-units = 1

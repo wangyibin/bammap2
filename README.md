@@ -5,9 +5,9 @@
 A lightweight wrapper to run minimap2 (v2.30) alignments directly on BAM file, powered by a robust Rust wrapper for minimap2 ([minimap2-rs](https://github.com/jguhlin/minimap2-rs)).
 
 ### Motivation
-- **Efficiency**: The `dorado` binary is excessively large for users who only require read alignment.
+- **Efficiency**: The dorado binary is bloated for alignment-only use cases, imposing an unnecessary footprint.
 
-- **Flexibility**: `dorado` provides limited access to `minimap2` parameters, restricting fine-grained control over the alignment process.
+- **Flexibility**: Limited access to minimap2 arguments in dorado restricts users' ability to fine-tune the alignment process.
 
 
 

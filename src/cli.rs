@@ -3,26 +3,6 @@ use clap::{arg, Arg, ArgAction, Command, value_parser};
 
 const VERSION: &str = "0.1.0";
 
-
-fn parse_si_size(s: &str) -> Result<usize, String> {
-    let s = s.trim();
-    if s.is_empty() {
-        return Err("Empty input".to_string());
-    }
-
-    let last = s.chars().last().unwrap();
-    let (num_str, multiplier) = match last {
-        'G' | 'g' => (&s[..s.len() - 1], 1_000_000_000.0),
-        'M' | 'm' => (&s[..s.len() - 1], 1_000_000.0),
-        'K' | 'k' => (&s[..s.len() - 1], 1_000.0),
-        _ => (s, 1.0),
-    };
-
-    let num = num_str.parse::<f64>()
-        .map_err(|_| format!("Invalid number format: {}", s))?;
-
-    Ok((num * multiplier) as usize)
-}
 fn parse_si_size_u64(s: &str) -> Result<u64, String> {
     let s = s.trim();
     if s.is_empty() {
@@ -138,6 +118,9 @@ pub fn cli() -> Command {
                 .value_name("FLOAT")
             
         )
+        // .arg(
+        //     Arg::new("")
+        // )
         .arg(
             Arg::new("bw")
                 .short('r')

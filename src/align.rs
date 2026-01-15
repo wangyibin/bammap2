@@ -1,4 +1,4 @@
-#![allow(unused_imports, unused_variables)]
+#![allow(unused_imports, unused_variables, unused_unsafe)]
 use anyhow::{anyhow, Result as AnyResult};
 use crossbeam::channel;
 use minimap2::{ Aligner, Built};
@@ -9,7 +9,7 @@ use rust_htslib::bam::{
     record::Cigar, record::CigarString,
     Read, Reader, Record, HeaderView, 
     Header, header::HeaderRecord,
-    Writer, ext::BamRecordExtensions
+    Writer
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -51,25 +51,6 @@ fn parse_cigar_string(cigar: &str) -> AnyResult<CigarString> {
     Ok(CigarString(ops))
 }
 
-fn cigar_to_cigarstr(cigar: &Vec<(u32, u8)>) -> CigarString {
-    let op_vec: Vec<Cigar> = cigar
-        .to_owned()
-        .iter()
-        .map(|(len, op)| match op {
-            0 => Cigar::Match(*len),
-            1 => Cigar::Ins(*len),
-            2 => Cigar::Del(*len),
-            3 => Cigar::RefSkip(*len),
-            4 => Cigar::SoftClip(*len),
-            5 => Cigar::HardClip(*len),
-            6 => Cigar::Pad(*len),
-            7 => Cigar::Equal(*len),
-            8 => Cigar::Diff(*len),
-            _ => panic!("Unexpected cigar operation"),
-        })
-        .collect();
-    CigarString(op_vec)
-}
 
 fn revcomp_in_place(seq: &mut [u8]) {
     seq.reverse();
@@ -84,120 +65,6 @@ fn revcomp_in_place(seq: &mut [u8]) {
         };
     }
 }
-
-fn reverse_in_place<T>(v: &mut [T]) {
-    v.reverse();
-}
-
-fn reverse_qual(qual: &[u8]) -> Vec<u8> {
-    let mut q = qual.to_vec();
-    q.reverse();
-    q
-}
-
-fn count_base(seq: &[u8], base: u8) -> usize {
-    let b = base.to_ascii_uppercase();
-    seq.iter().filter(|&&x| x.to_ascii_uppercase() == b).count()
-}
-
-fn parse_mm_part(part: &str) -> AnyResult<(u8, String, Vec<i64>)> {
-    let mut it = part.split(',');
-    let header = it.next().ok_or_else(|| anyhow!("Bad MM part: {part}"))?.to_string();
-    let base = header
-        .as_bytes()
-        .get(0)
-        .copied()
-        .ok_or_else(|| anyhow!("Bad MM header: {header}"))?;
-
-    let mut deltas: Vec<i64> = Vec::new();
-    for x in it {
-        if x.is_empty() {
-            continue;
-        }
-        deltas.push(x.parse::<i64>()?);
-    }
-    Ok((base, header, deltas))
-}
-
-fn mm_deltas_to_abs(deltas: &[i64]) -> Vec<i64> {
-    let mut abs = Vec::with_capacity(deltas.len());
-    let mut cur: i64 = 0;
-    for &d in deltas {
-        cur += d;      // skip d bases of that type
-        abs.push(cur); // current base index is modified
-        cur += 1;      // move past this modified base
-    }
-    abs
-}
-
-fn mm_abs_to_deltas(abs: &[i64]) -> Vec<i64> {
-    let mut deltas = Vec::with_capacity(abs.len());
-    let mut last: i64 = 0;
-    for &idx in abs {
-        deltas.push(idx - last);
-        last = idx + 1;
-    }
-    deltas
-}
-
-fn reverse_mm_part(part: &str, seq_fwd_oriented: &[u8]) -> AnyResult<String> {
-    let (base, header, deltas) = parse_mm_part(part)?;
-    let total = count_base(seq_fwd_oriented, base) as i64;
-
-    let comp_base = match base {
-        b'A' => b'T', b'C' => b'G', b'G' => b'C', b'T' => b'A',
-        b'a' => b't', b'c' => b'g', b'g' => b'c', b't' => b'a',
-        other => other,
-    };
-
-    let mut new_header = header.clone();
-    if !new_header.is_empty() {
-        unsafe { new_header.as_bytes_mut()[0] = comp_base; }
-    }
-
-    if total <= 0 || deltas.is_empty() {
-        return Ok(new_header);
-    }
-
-    let mut abs = mm_deltas_to_abs(&deltas);
-
-    for x in abs.iter_mut() {
-        *x = (total - 1) - *x;
-    }
-    abs.sort_unstable();
-
-    let new_deltas = mm_abs_to_deltas(&abs);
-    let mut out = String::new();
-    out.push_str(&new_header);
-    for d in new_deltas {
-        out.push(',');
-        out.push_str(&d.to_string());
-    }
-    Ok(out)
-}
-
-
-fn reverse_mm_tag(mm: &str, seq_fwd_oriented: &[u8]) -> AnyResult<String> {
-    let mm = mm.trim_end_matches('\0'); 
-    let parts: Vec<&str> = mm.split(';').filter(|s| !s.is_empty()).collect();
-    if parts.is_empty() {
-        return Ok(mm.to_string());
-    }
-    let mut new_parts = Vec::with_capacity(parts.len());
-    for p in parts {
-        new_parts.push(reverse_mm_part(p, seq_fwd_oriented)?);
-    }
-    new_parts.reverse();
-    Ok(format!("{};", new_parts.join(";")))
-}
-
-
-fn reverse_ml(ml: &[u8]) -> Vec<u8> {
-    let mut v = ml.to_vec();
-    v.reverse();
-    v
-}
-
 
 fn copy_all_aux_except(rec_src: &Record, rec_dst: &mut Record, skip: &[&[u8; 2]]) -> AnyResult<()> {
     for item in rec_src.aux_iter() {
@@ -515,8 +382,12 @@ pub fn align(reference: &String,
     }
     if secondary {
         aligner.mapopt.flag |= MM_F_SECONDARY_SEQ as i64;
+        // aligner.mapopt.set_secondary_seq();
+        // aligner.mapopt.set_no_print_2nd();
     } else {
         aligner.mapopt.flag |= MM_F_NO_PRINT_2ND as i64;
+        // aligner.mapopt.unset_secondary_seq();
+        // aligner.mapopt.unset_no_print_2nd();
     }
 
     if soft_clip {

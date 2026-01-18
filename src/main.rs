@@ -1,7 +1,6 @@
 #![allow(unused_imports, unused_variables)]
 use env_logger::Builder;
 use log::LevelFilter;
-use jemallocator::Jemalloc;
 use chrono::Local;
 use bammap2::cli::cli;
 use bammap2::align::align;
@@ -9,6 +8,7 @@ use std::io::Write;
 use std::sync::Once;
 static INIT: Once = Once::new();
 
+use tikv_jemallocator::Jemalloc;
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 

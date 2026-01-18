@@ -24,7 +24,8 @@ minimap2 = { version = "0.1.28",  features = ["simde", "zlib-ng", "htslib"]}
 minimap2-sys = {version = "0.1.24"}
 log = { version = "0.4.17" }
 libc = { version = "0.2" }
-jemallocator = { version = "0.5.4 " }
+# jemallocator = { version = "0.5.4 " }
+tikv-jemallocator = { version = "*" }
 rayon = { version = "1.11.0" }
 rust-htslib = { version = "0.51.0", default-features = false }
 

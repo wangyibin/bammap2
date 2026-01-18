@@ -7,7 +7,7 @@ use clap::{arg, Arg, ArgAction,
             Command, 
             value_parser};
 
-const VERSION: &str = "0.1.0";
+const VERSION: &str = "0.1.1";
 
 const STYLES: Styles = Styles::styled()
     .header(AnsiColor::Green.on_default().effects(Effects::BOLD))

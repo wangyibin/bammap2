@@ -1,5 +1,8 @@
 # bammap2
-![](https://img.shields.io/github/v/tag/wangyibin/bammap2) ![](https://img.shields.io/github/commit-activity/m/wangyibin/bammap2) ![](https://img.shields.io/github/last-commit/wangyibin/bammap2) ![platforms](https://img.shields.io/badge/platforms-aarch64%20|%20x86-blue) [](https://img.shields.io/github/downloads/wangyibin/bammap2/total?style=flat)
+![](https://img.shields.io/github/v/tag/wangyibin/bammap2) ![](https://img.shields.io/github/commit-activity/m/wangyibin/bammap2) ![](https://img.shields.io/github/last-commit/wangyibin/bammap2) ![platforms](https://img.shields.io/badge/platforms-aarch64%20|%20x86-blue) ![](https://img.shields.io/github/downloads/wangyibin/bammap2/total?style=flat) ![](https://img.shields.io/crates/d/bammap2?label=crates%20downloads) ![](https://img.shields.io/conda/d/bioconda/bammap2
+) 
+
+
 
 ## Introduction 
 A lightweight wrapper to run minimap2 (v2.30) alignments directly on BAM file, powered by a robust Rust wrapper for minimap2 ([minimap2-rs](https://github.com/jguhlin/minimap2-rs)).

@@ -1,6 +1,6 @@
 [package]
 name = "bammap2"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "BSD-3-Clause"
 description = "A lightweight wrapper to run minimap2 (v2.30) alignments directly on BAM file"
@@ -28,6 +28,7 @@ libc = { version = "0.2" }
 tikv-jemallocator = { version = "*" }
 rayon = { version = "1.11.0" }
 rust-htslib = { version = "0.51.0", default-features = false }
+needletail = "0.6.3"
 
 [profile.dev]
 opt-level = 1

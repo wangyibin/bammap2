@@ -16,9 +16,11 @@ use std::sync::Arc;
 use std::sync::mpsc;
 use std::thread;
 use std::ffi::{CStr, CString};
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read as stdRead};
 use std::path::Path;
 use rayon::prelude::*;
+use needletail::{ parse_fastx_file, parse_fastx_stdin, parser::SequenceRecord};
+
 
 
 fn parse_cigar_string(cigar: &str) -> AnyResult<CigarString> {
@@ -171,23 +173,27 @@ fn process_single_read(
         let is_rev = aln.strand == minimap2::Strand::Reverse;
         let is_primary = aln.is_primary;
         let is_supplementary = aln.is_supplementary;
-        
-        if !secondary && !is_primary && !is_supplementary { continue; }
+        let is_secondary_aln = !is_primary && !is_supplementary;
+        if !secondary && is_secondary_aln { continue; }
         
         let aln_info = aln
             .alignment
             .as_ref()
             .ok_or_else(|| anyhow!("Missing alignment info"))?;
         
-        let query_start = aln.query_start;
-        let query_end = aln.query_end;
         let raw_cigar = parse_cigar_string(aln_info.cigar_str.as_deref().unwrap_or("*"))?;
-          
-
         
-        let use_soft_clip = soft_clip || is_primary;
-  
-        let (final_seq, final_qual, final_cigar) = if use_soft_clip {
+        let (final_seq, final_qual, final_cigar) = if soft_clip {
+            let mut s = seq_buf.to_vec();
+            let mut q = qual_buf.to_vec();
+            if is_rev {
+                revcomp_in_place(&mut s);
+                q.reverse();
+            }
+            (s, q, raw_cigar)
+        } else if is_secondary_aln {
+            (vec![], vec![], raw_cigar)
+        } else if is_primary {
             let mut s = seq_buf.to_vec();
             let mut q = qual_buf.to_vec();
             if is_rev {
@@ -200,7 +206,7 @@ fn process_single_read(
                 _ => op.clone(),
             }).collect();
             (s, q, CigarString(ops))
-        } else {
+        } else if is_supplementary {
             let q_start = aln.query_start as usize;
             let q_end = aln.query_end as usize;
             let mut s = seq_buf[q_start..q_end].to_vec();
@@ -209,12 +215,15 @@ fn process_single_read(
                 revcomp_in_place(&mut s);
                 q.reverse();
             }
-            let ops: Vec<Cigar> = raw_cigar.iter()
-                .filter(|c| !matches!(c, Cigar::SoftClip(_) | Cigar::HardClip(_)))
-                .cloned().collect();
+            let ops: Vec<Cigar> = raw_cigar.iter().map(|op| match op {
+                Cigar::SoftClip(n) => Cigar::HardClip(*n),
+                _ => op.clone(),
+            }).collect();
             (s, q, CigarString(ops))
+        } else {
+            continue;
         };
-        
+
         let tid: i32 = if let Some(ref tname_arc) = aln.target_name {
             let tname_str: &str = tname_arc.as_str();
             *tid_map
@@ -441,23 +450,51 @@ pub fn align(reference: &String,
 
     thread::scope(|s| {
         s.spawn(move || {
-            for bam_path in input_bams {
+            for path in input_bams {
 
-                log::info!("Starting alignment for: {}", bam_path);
-                let mut reader = if bam_path == "-" {
-                    Reader::from_stdin().expect("Failed to read from stdin")
-                } else {
-                    Reader::from_path(bam_path).expect("Failed to read BAM file")
-                };
-                let _ = reader.set_threads((threads / 4).max(1));
+                log::info!("Starting alignment for: {}", path);
 
-     
-                reader.records().par_bridge().for_each_with(tx.clone(), |tx_inner, r| {
-                    if let Ok(rec) = r {
-                        let res = process_single_read(&rec, &aligner, &tid_map);
+                let is_stdin = path == "-";
+
+                
+                if let Ok(mut n_reader) = parse_fastx_file(path) {
+                    log::info!("Detected Fastx format for: {}", path);
+                    let iter = std::iter::from_fn(move || {
+                        n_reader.next().map(|r| {
+                            let rec = r.expect("Invalid fastx record");
+                            let mut bam_rec = Record::new();
+                            let qual = rec.qual();
+                            if let Some(q) = qual.as_deref() {
+                                bam_rec.set(rec.id(), None, &rec.seq(), q);
+                            } else {
+                                let dummy_qual = vec![255u8; rec.seq().len()];
+                                bam_rec.set(rec.id(), None, &rec.seq(), &dummy_qual);
+                            }
+                            bam_rec
+                        })
+                    });
+                    iter.par_bridge().for_each_with(tx.clone(), |tx_inner, bam_rec| {
+                        let res = process_single_read(&bam_rec, &aligner, &tid_map);
                         let _ = tx_inner.send(res);
-                    }
-                });
+                    });
+                    continue; 
+                } else {
+                    log::info!("Processing HTS file for: {}", path);
+                    let mut reader = if is_stdin {
+                        Reader::from_stdin().expect("Failed to read from stdin")
+                    } else {
+                        Reader::from_path(path).expect("Failed to read BAM file")
+                    };
+                    let _ = reader.set_threads((threads / 4).max(1));
+                    
+                    reader.records().par_bridge().for_each_with(tx.clone(), |tx_inner, r| {
+                        if let Ok(rec) = r {
+                            let res = process_single_read(&rec, &aligner, &tid_map);
+                            let _ = tx_inner.send(res);
+                        }
+                    });
+                }
+                
             }
         });
     

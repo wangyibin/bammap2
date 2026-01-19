@@ -7,7 +7,7 @@ use clap::{arg, Arg, ArgAction,
             Command, 
             value_parser};
 
-const VERSION: &str = "0.1.1";
+const VERSION: &str = "0.1.2";
 
 const STYLES: Styles = Styles::styled()
     .header(AnsiColor::Green.on_default().effects(Effects::BOLD))
@@ -106,7 +106,7 @@ pub fn cli() -> Command {
         )
         .arg(
             Arg::new("query")
-                .help("query sequences with BAM Format, only support BAM files")
+                .help("query sequences with BAM or fastq(.gz)/fasta(.gz)")
                 .required(true)
                 .num_args(1..)
         )
@@ -282,6 +282,7 @@ pub fn cli() -> Command {
                 .help("Integer seed for randomizing equally best hits. Minimap2 hashes INT and read name when choosing between equally best hits. [11]" )
                 .value_parser(value_parser!(i32))
                 .value_name("INT")
+                .default_value("11")
         )
         .arg(
             Arg::new("max_qlen")

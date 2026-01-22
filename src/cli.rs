@@ -7,7 +7,7 @@ use clap::{arg, Arg, ArgAction,
             Command, 
             value_parser};
 
-const VERSION: &str = "0.1.2";
+const VERSION: &str = "0.1.3";
 
 const STYLES: Styles = Styles::styled()
     .header(AnsiColor::Green.on_default().effects(Effects::BOLD))
@@ -106,7 +106,7 @@ pub fn cli() -> Command {
         )
         .arg(
             Arg::new("query")
-                .help("query sequences with BAM or fastq(.gz)/fasta(.gz)")
+                .help("query sequences with BAM or fastq(.gz)/fasta(.gz), multiple files allowed. Use '-' for stdin. Stdin and pipe are only supported for BAM input and single file.")
                 .required(true)
                 .num_args(1..)
         )

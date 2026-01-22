@@ -328,12 +328,9 @@ pub fn align(reference: &String,
         }
     };
     
+    log::info!("Indexing reference: {} ...", reference);
     let mut aligner = Aligner::builder()
-                        .preset(preset)
-                        .with_index_threads(threads)
-                        .with_cigar()
-                        .with_index(reference, None)
-                        .unwrap();
+                        .preset(preset);
     // set parameters
     if let Some(k) = k {
         aligner.idxopt.k = k;
@@ -432,16 +429,31 @@ pub fn align(reference: &String,
         aligner.mapopt.seed = seed;
     }
     
+    let aligner = aligner.with_cigar()
+        .with_index_threads(threads)
+        .with_index(reference, None)
+        .unwrap();
+
     let idx = aligner.idx.clone().unwrap();
 
-
+    log::info!("Finished indexing. Number of sequences in reference: {}", unsafe { (**idx).n_seq });
     let header = Header::new();
     let mmindex = MMIndex::from(&aligner);
     let header = mmindex.get_header();
-    let mut tid_map: HashMap<String, i32> = HashMap::new();
-    for (i, seq) in mmindex.seqs().iter().enumerate() {
-        tid_map.insert(seq.name.clone(), i as i32);
+    // let mut tid_map: HashMap<String, i32> = HashMap::new();
+    // for (i, seq) in mmindex.seqs().par_iter().enumerate() {
+    //     tid_map.insert(seq.name.clone(), i as i32);
+    // }
+    let tid_map: HashMap<String, i32> = mmindex
+        .seqs()
+        .into_par_iter()
+        .enumerate()
+        .map(|(i, seq)| (seq.name, i as i32))
+        .collect();
+    if input_bams.len() > 1 {
+        log::info!("Starting alignment of input files...");
     }
+
 
     let mut writer = Writer::from_path(output_bam, &header, bam::Format::Bam)?;
     let _ = writer.set_threads((threads / 4).max(1));
@@ -454,9 +466,40 @@ pub fn align(reference: &String,
 
                 log::info!("Starting alignment for: {}", path);
 
-                let is_stdin = path == "-";
+                let is_stdin = path == "-" || path == "/dev/stdin";
+                let is_pipe = path.starts_with("/dev/fd/");
 
+                let is_bam = if is_stdin || is_pipe {
+                    true
+                } else {
+                    let p = Path::new(path);
+                    match p.extension() {
+                        Some(ext) => {
+                            let ext_str = ext.to_string_lossy().to_lowercase();
+                            ext_str == "bam" || ext_str == "cram" || ext_str == "sam"
+                        }
+                        None => false,
+                    }
+                };
                 
+                if is_bam {
+                    log::info!("Processing HTS file for: {}", path);
+                    let mut reader = if is_stdin {
+                        Reader::from_stdin().expect("Failed to read from stdin")
+                    } else {
+                        Reader::from_path(path).expect("Failed to read BAM file")
+                    };
+                    let _ = reader.set_threads((threads / 4).max(1));
+                    
+                    reader.records().par_bridge().for_each_with(tx.clone(), |tx_inner, r| {
+                        if let Ok(rec) = r {
+                            let res = process_single_read(&rec, &aligner, &tid_map);
+                            let _ = tx_inner.send(res);
+                        }
+                    });
+                    continue; 
+                }
+
                 if let Ok(mut n_reader) = parse_fastx_file(path) {
                     log::info!("Detected Fastx format for: {}", path);
                     let iter = std::iter::from_fn(move || {

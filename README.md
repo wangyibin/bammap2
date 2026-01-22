@@ -1,6 +1,5 @@
 # bammap2
-![](https://img.shields.io/github/v/tag/wangyibin/bammap2) ![](https://img.shields.io/github/commit-activity/m/wangyibin/bammap2) ![](https://img.shields.io/github/last-commit/wangyibin/bammap2) ![platforms](https://img.shields.io/badge/platforms-aarch64%20|%20x86-blue) ![](https://img.shields.io/github/downloads/wangyibin/bammap2/total?style=flat) ![](https://img.shields.io/crates/d/bammap2?label=crates%20downloads) ![](https://img.shields.io/conda/d/bioconda/bammap2
-) 
+![](https://img.shields.io/github/v/tag/wangyibin/bammap2) ![](https://img.shields.io/github/commit-activity/m/wangyibin/bammap2) ![](https://img.shields.io/github/last-commit/wangyibin/bammap2) ![platforms](https://anaconda.org/bioconda/bammap2/badges/platforms.svg) [![](https://img.shields.io/github/downloads/wangyibin/bammap2/total?style=flat)](https://github.com/wangyibin/bammap2/releases) [![](https://img.shields.io/crates/d/bammap2?label=crates%20downloads)](https://crates.io/crates/bammap2) [![](https://img.shields.io/conda/d/bioconda/bammap2?label=conda%20downloads)](https://anaconda.org/channels/bioconda/packages/bammap2) 
 
 
 

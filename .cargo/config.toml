@@ -1,2 +1,5 @@
 [env]
 CFLAGS = "-D_GNU_SOURCE"
+
+[build]
+rustflags = ["-C", "target-cpu=native"]

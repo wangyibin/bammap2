@@ -402,11 +402,11 @@ pub fn align(reference: &String,
     if secondary {
         aligner.mapopt.flag |= MM_F_SECONDARY_SEQ as i64;
         // aligner.mapopt.set_secondary_seq();
-        // aligner.mapopt.set_no_print_2nd();
+        // aligner.mapopt.unset_no_print_2nd();
     } else {
         aligner.mapopt.flag |= MM_F_NO_PRINT_2ND as i64;
         // aligner.mapopt.unset_secondary_seq();
-        // aligner.mapopt.unset_no_print_2nd();
+        // aligner.mapopt.set_no_print_2nd();
     }
 
     if soft_clip {
@@ -440,10 +440,7 @@ pub fn align(reference: &String,
     let header = Header::new();
     let mmindex = MMIndex::from(&aligner);
     let header = mmindex.get_header();
-    // let mut tid_map: HashMap<String, i32> = HashMap::new();
-    // for (i, seq) in mmindex.seqs().par_iter().enumerate() {
-    //     tid_map.insert(seq.name.clone(), i as i32);
-    // }
+
     let tid_map: HashMap<String, i32> = mmindex
         .seqs()
         .into_par_iter()
@@ -456,11 +453,16 @@ pub fn align(reference: &String,
 
 
     let mut writer = Writer::from_path(output_bam, &header, bam::Format::Bam)?;
-    let _ = writer.set_threads((threads / 4).max(1));
+    let _ = writer.set_threads(threads.min(32));
 
-    let (tx, rx) = channel::bounded::<AnyResult<Vec<Record>>>(threads * 2);
+    let cap = (threads * 2).clamp(32, 256);
+    let (tx, rx) = channel::bounded::<AnyResult<Vec<Record>>>(cap);
+
+    let aligner_ref = &aligner;
+    let tid_map_ref = &tid_map;
 
     thread::scope(|s| {
+        let tx_producer = tx.clone();
         s.spawn(move || {
             for path in input_bams {
 
@@ -489,12 +491,14 @@ pub fn align(reference: &String,
                     } else {
                         Reader::from_path(path).expect("Failed to read BAM file")
                     };
-                    let _ = reader.set_threads((threads / 4).max(1));
-                    
-                    reader.records().par_bridge().for_each_with(tx.clone(), |tx_inner, r| {
+                    let _ = reader.set_threads(threads.min(16));
+                    reader.records().par_bridge().for_each_with(tx_producer.clone(), |tx_inner, r| {
                         if let Ok(rec) = r {
-                            let res = process_single_read(&rec, &aligner, &tid_map);
-                            let _ = tx_inner.send(res);
+                            if let Ok(res) = process_single_read(&rec, aligner_ref, tid_map_ref) {
+                                if !res.is_empty() {
+                                    let _ = tx_inner.send(Ok(res));
+                                }
+                            }
                         }
                     });
                     continue; 
@@ -516,9 +520,12 @@ pub fn align(reference: &String,
                             bam_rec
                         })
                     });
-                    iter.par_bridge().for_each_with(tx.clone(), |tx_inner, bam_rec| {
-                        let res = process_single_read(&bam_rec, &aligner, &tid_map);
-                        let _ = tx_inner.send(res);
+                    iter.par_bridge().for_each_with(tx_producer.clone(), |tx_inner, bam_rec| {
+                        if let Ok(res) = process_single_read(&bam_rec, aligner_ref, tid_map_ref) {
+                            if !res.is_empty() {
+                                let _ = tx_inner.send(Ok(res));
+                            }
+                        }
                     });
                     continue; 
                 } else {
@@ -528,19 +535,24 @@ pub fn align(reference: &String,
                     } else {
                         Reader::from_path(path).expect("Failed to read BAM file")
                     };
-                    let _ = reader.set_threads((threads / 4).max(1));
-                    
-                    reader.records().par_bridge().for_each_with(tx.clone(), |tx_inner, r| {
+                    let _ = reader.set_threads(threads.min(16));
+                    reader.records().par_bridge().for_each_with(tx_producer.clone(), |tx_inner, r| {
                         if let Ok(rec) = r {
-                            let res = process_single_read(&rec, &aligner, &tid_map);
-                            let _ = tx_inner.send(res);
+                          
+                            if let Ok(res) = process_single_read(&rec, aligner_ref, tid_map_ref) {
+                                if !res.is_empty() {
+                                    let _ = tx_inner.send(Ok(res));
+                                }
+                            }
                         }
                     });
                 }
                 
             }
-        });
-    
+        }); 
+
+        drop(tx);
+
         let mut count = 0;
         for result in rx {
             let records = result?;

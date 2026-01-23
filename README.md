@@ -12,6 +12,15 @@ A lightweight wrapper to run minimap2 (v2.30) alignments directly on BAM file, p
 - **Flexibility**: Limited access to minimap2 arguments in dorado restricts users' ability to fine-tune the alignment process.
 
 
+## Installation
+### [Conda](https://anaconda.org/channels/bioconda/packages/bammap2)
+```shell
+conda install -c conda-forge -c bioconda bammap2
+```
+
+### Download from [Github release](https://github.com/wangyibin/bammap2/releases)
+
+
 
 ## Current supported parameters
 ```shell

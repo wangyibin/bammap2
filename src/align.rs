@@ -311,6 +311,7 @@ pub fn align(reference: &String,
 
     let preset = match preset {
         "lr:hq" => minimap2::Preset::LrHq,
+        "lr:hqae" => minimap2::Preset::LrHqae,
         "map-hifi" => minimap2::Preset::MapHifi,
         "map-ont" => minimap2::Preset::MapOnt,
         "map-pb" => minimap2::Preset::MapPb,
@@ -560,7 +561,7 @@ pub fn align(reference: &String,
                 writer.write(&rec)?;
             }
             count += 1;
-            if count % mini_batch_size == 0 {
+            if count % 10_000 == 0 {
                 log::info!("Processed {} reads...", count);
             }
         }

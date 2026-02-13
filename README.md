@@ -1,5 +1,5 @@
 # bammap2
-![](https://img.shields.io/github/v/tag/wangyibin/bammap2) ![](https://img.shields.io/github/commit-activity/m/wangyibin/bammap2) ![](https://img.shields.io/github/last-commit/wangyibin/bammap2) ![platforms](https://anaconda.org/bioconda/bammap2/badges/platforms.svg) [![](https://img.shields.io/github/downloads/wangyibin/bammap2/total?style=flat)](https://github.com/wangyibin/bammap2/releases) [![](https://img.shields.io/crates/d/bammap2?label=crates%20downloads)](https://crates.io/crates/bammap2) [![](https://img.shields.io/conda/d/bioconda/bammap2?label=conda%20downloads)](https://anaconda.org/channels/bioconda/packages/bammap2) 
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/bammap2/README.html) ![](https://img.shields.io/github/v/tag/wangyibin/bammap2) ![](https://img.shields.io/github/commit-activity/m/wangyibin/bammap2) ![](https://img.shields.io/github/last-commit/wangyibin/bammap2) ![platforms](https://anaconda.org/bioconda/bammap2/badges/platforms.svg) [![](https://img.shields.io/github/downloads/wangyibin/bammap2/total?style=flat)](https://github.com/wangyibin/bammap2/releases) [![](https://img.shields.io/crates/d/bammap2?label=crates%20downloads)](https://crates.io/crates/bammap2) [![](https://img.shields.io/conda/d/bioconda/bammap2?label=conda%20downloads)](https://bioconda.github.io/recipes/bammap2/README.html) 
 
 
 
@@ -7,9 +7,11 @@
 A lightweight wrapper to run minimap2 (v2.30) alignments directly on BAM file, powered by a robust Rust wrapper for minimap2 ([minimap2-rs](https://github.com/jguhlin/minimap2-rs)).
 
 ### Motivation
-- **Efficiency**: The dorado binary is bloated for alignment-only use cases, imposing an unnecessary footprint.
+- **Efficiency**: The `dorado` binary is bloated for alignment-only use cases, imposing an unnecessary footprint.
 
-- **Flexibility**: Limited access to minimap2 arguments in dorado restricts users' ability to fine-tune the alignment process.
+- **Flexibility**: Limited access to `minimap2` parameters in `dorado` restricts users' ability to fine-tune the alignment process.
+- **Ecosystem Integration (Conda Support)**: `dorado` lacks official support for Conda distribution, which hinders its integration into automated workflows and dependency management systems (like `Pixi` or `Snakemake`).
+
 
 
 ## Installation
@@ -17,18 +19,27 @@ A lightweight wrapper to run minimap2 (v2.30) alignments directly on BAM file, p
 ```shell
 conda install -c conda-forge -c bioconda bammap2
 ```
+Or:
+```shell
+conda install -c https://prefix.dev/waybio bammap2
+```
+
+### [pixi](https://prefix.dev/channels/waybio/packages/bammap2)
+```shell
+pixi global install bammap2
+```
 
 ### Download from [Github release](https://github.com/wangyibin/bammap2/releases)
 
 
 
-## Current supported parameters
+## Supported parameters
 ```shell
 Usage: bammap2 [OPTIONS] <reference> <query>...
 
 Arguments:
   <reference>  target.fa or target.idx
-  <query>...   query sequences with BAM Format, only support BAM files
+  <query>...   query sequences with BAM or fastq(.gz)/fasta(.gz), multiple files allowed. Use '-' for stdin. Stdin and pipe are only supported for BAM input and single file.
 
 Options:
   -h, --help     Print help
@@ -61,11 +72,11 @@ Alignments:
 Input/Output:
   -o <FILE>                    output file path, currently only support output in BAM formst [stdout] [default: -]
   -Y                           use soft clipping for supplementary alignments
-      --seed <INT>             Integer seed for randomizing equally best hits. Minimap2 hashes INT and read name when choosing between equally best hits. [11]
+      --seed <INT>             Integer seed for randomizing equally best hits. Minimap2 hashes INT and read name when choosing between equally best hits. [11] [default: 11]
       --max-qlen <INT>         skip reads longer than INT [0 (disabled)]
       --secondary <secondary>  Whether to output secondary alignments [default: yes] [possible values: yes, no]
   -t <INT>                     number of threads [default: 8]
-  -K <STR>                     minibatch size logging when mapping [default: 10k]
+  -K <STR>                     minibatch size for mapping [500M] [default: 500M]
 
 Presets:
   -x <STR>      - lr:hq - accurate long reads (error rate <1%) against a reference genome

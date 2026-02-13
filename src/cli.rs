@@ -7,7 +7,7 @@ use clap::{arg, Arg, ArgAction,
             Command, 
             value_parser};
 
-const VERSION: &str = "0.1.4";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const STYLES: Styles = Styles::styled()
     .header(AnsiColor::Green.on_default().effects(Effects::BOLD))
@@ -309,10 +309,10 @@ pub fn cli() -> Command {
         .arg(
             Arg::new("mini_batch_size")
                 .short('K')
-                .help("minibatch size logging when mapping")
+                .help("minibatch size for mapping [500M]")
                 .value_parser(parse_si_size_i64)
                 .value_name("STR")
-                .default_value("10k"),
+                .default_value("500M"),
 
         )
         .next_help_heading("Presets")
@@ -330,7 +330,7 @@ r##"- lr:hq - accurate long reads (error rate <1%) against a reference genome
 "##
             )
                 .value_parser([
-                    "lr:hq", "map-hifi", "map-pb", "map-ont", "asm5", "asm10", "asm20", "sr", "splice", "splice:hq"
+                    "lr:hq", "lr:hqae", "map-hifi", "map-pb", "map-ont", "asm5", "asm10", "asm20", "sr", "splice", "splice:hq"
                 ])
                 .default_value("lr:hq"),
         )

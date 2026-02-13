@@ -1,10 +1,16 @@
 [workspace]
 authors = ["wangyibin <yibinwang96@outlook.com>"]
 channels = ["conda-forge"]
+preview = ["pixi-build"]
 description = "A lightweight wrapper to run minimap2 (v2.30) alignments directly on BAM file"
-name = "bammap2"
 platforms = ["linux-64", "linux-aarch64"]
-version = "0.1.0"
+
+[package]
+name = "bammap2"
+version = "0.1.4"
+
+[package.build]
+backend = { name = "pixi-build-rattler-build", version = "0.3.*" }
 
 [system-requirements]
 linux = "3.10.0"

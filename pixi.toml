@@ -7,7 +7,7 @@ platforms = ["linux-64", "linux-aarch64"]
 
 [package]
 name = "bammap2"
-version = "0.1.4"
+version = "0.1.5"
 
 [package.build]
 backend = { name = "pixi-build-rattler-build", version = "0.3.*" }

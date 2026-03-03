@@ -1,6 +1,6 @@
 [package]
 name = "bammap2"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2021"
 license = "BSD-3-Clause"
 description = "A lightweight wrapper to run minimap2 (v2.30) alignments directly on BAM file"
@@ -27,14 +27,14 @@ clap = { version = "4.4.10" }
 chrono = { version = "0.4.24" }
 crossbeam = "0.8.4"
 env_logger = { version = "0.10.0" }
-minimap2 = { version = "0.1.28", default-features = false }
-minimap2-sys = {version = "0.1.24"}
+minimap2 = { version = "0.1.31", default-features = false }
+minimap2-sys = {version = "0.1.30"}
 log = { version = "0.4.17" }
 libc = { version = "0.2" }
 # jemallocator = { version = "0.5.4 " }
 tikv-jemallocator = "0.6.1"
 rayon = { version = "1.11.0" }
-rust-htslib = { version = "0.51.0", default-features = false }
+rust-htslib = { version = "0.44", default-features = false }
 needletail = "0.6.3"
 
 [profile.dev]

@@ -1,3 +1,6 @@
+# v0.1.7 [2026-03-03]
+### Bug fixes
+    - change rust-htslib from v0.51.0 to v0.44.0 to fixed the report that bammap2 cannot be compiled in bioconda check system
 # v0.1.6 [2026-03-03]
 ### Enhancement
     - add parameter `-U`

@@ -75,6 +75,24 @@ fn parse_si_size_i32(s: &str) -> Result<i32, String> {
     Ok((num * multiplier) as i32)
 }
 
+fn parse_float_pair(s: &str) -> Result<(f32, Option<f32>), String> {
+    let s = s.trim();
+    if s.is_empty() {
+        return Err("Empty input".to_string());
+    }
+
+    if let Some((first, second)) = s.split_once(',') {
+        let v1 = first.trim().parse::<f32>()
+            .map_err(|_| format!("Invalid float format: {}", first))?;
+        let v2 = second.trim().parse::<f32>()
+            .map_err(|_| format!("Invalid float format: {}", second))?;
+        Ok((v1, Some(v2)))
+    } else {
+        let v1 = s.parse::<f32>()
+            .map_err(|_| format!("Invalid float format: {}", s))?;
+        Ok((v1, None))
+    }
+}
 
 fn parse_int_pair(s: &str) -> Result<(i32, Option<i32>), String> {
     let s = s.trim();
@@ -143,12 +161,19 @@ pub fn cli() -> Command {
         )
         .next_help_heading("Mapping")
         .arg(
-            Arg::new("mask_level")
+            Arg::new("mid_occ_frac")
                 .short('f')
-                .help("filter out top FLOAT fraction of repetitive minimizers [0.0002]")
-                .value_parser(value_parser!(f32))
-                .value_name("FLOAT")
+                .help("If fraction, ignore top FLOAT fraction of most frequent minimizers [0.0002]. If integer, ignore minimizers occuring more than INT1 times. INT2 is only effective in the --sr or -xsr mode, which sets the threshold for a second round of seeding. [0.00002]")
+                .value_parser(parse_float_pair)
+                .value_name("FLOAT|INT1[,INT2]")
             
+        )
+        .arg(
+            Arg::new("bounds_of_occurrence")
+                .short('U')
+                .help("Lower and upper bounds of k-mer occurrences [10,1000000]. The final k-mer occurrence threshold is max{INT1, min{INT2, -f}}. This option prevents excessively small or large -f estimated from the input reference.")
+                .value_parser(parse_int_pair)
+                .value_name("INT1,[INT2]")
         )
         .arg(
             Arg::new("max_gap")
@@ -170,6 +195,14 @@ pub fn cli() -> Command {
                 .help("max fragment length (effective with -xsr or in the fragment mode) [800]")
                 .value_parser(parse_si_size_i32)
                 .value_name("INT")
+        )
+        .arg(
+            Arg::new("mask_level")
+                .short('M')
+                .hide(true)
+                .help("Mark as secondary a chain that overlaps with a better chain by FLOAT or more of the shorter chain [0.5]")
+                .value_parser(value_parser!(f32))
+                .value_name("FLOAT")
         )
         .arg(
             Arg::new("bw")

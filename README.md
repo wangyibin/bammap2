@@ -51,15 +51,16 @@ Indexing:
   -I <NUM>      split index for every ~NUM input bases [16G] [default: 16G]
 
 Mapping:
-  -f <FLOAT>          filter out top FLOAT fraction of repetitive minimizers [0.0002]
-  -g <INT>            stop chain enlongation if there are no minimizers in INT-bp [5000]
-  -G <INT>            max intron length (effective with -xsplice; changing -r) [200k]
-  -F <INT>            max fragment length (effective with -xsr or in the fragment mode) [800]
-  -r <INT,[INT]>      chaining/alignment bandwidth and long-join bandwidth [500,20000]
-  -n <INT>            minimal number of minimizers on a chain [3]
-  -m <INT>            minimal chaining score (matching bases minus log gap penalty) [40]
-  -p <FLOAT>          Min secondary-to-primary score ratio [0.8]
-  -N <INT>            Retain at most N secondary alignments [5]
+  -f <FLOAT>            filter out top FLOAT fraction of repetitive minimizers [0.0002]
+  -U <INT1,[INT2]>      Lower and upper bounds of k-mer occurrences [10,1000000]. The final k-mer occurrence threshold is max{INT1, min{INT2, -f}}. This option prevents excessively small or large -f estimated from the input reference.
+  -g <INT>              stop chain enlongation if there are no minimizers in INT-bp [5000]
+  -G <INT>              max intron length (effective with -xsplice; changing -r) [200k]
+  -F <INT>              max fragment length (effective with -xsr or in the fragment mode) [800]
+  -r <INT,[INT]>        chaining/alignment bandwidth and long-join bandwidth [500,20000]
+  -n <INT>              minimal number of minimizers on a chain [3]
+  -m <INT>              minimal chaining score (matching bases minus log gap penalty) [40]
+  -p <FLOAT>            Min secondary-to-primary score ratio [0.8]
+  -N <INT>              Retain at most N secondary alignments [5]
 
 Alignments:
   -A <INT>            matching score [2]
@@ -85,7 +86,7 @@ Presets:
                 - sr - short reads against a reference
                 - map-pb/map-hifi/map-ont - CLR/HiFi/Nanopore vs reference mapping
                 - ava-pb/ava-ont - PacBio CLR/Nanopore read overlap
-                 [default: lr:hq] [possible values: lr:hq, map-hifi, map-pb, map-ont, asm5, asm10, asm20, sr, splice, splice:hq]
+                 [default: lr:hq] [possible values: lr:hq, lr:hqae, map-hifi, map-pb, map-ont, asm5, asm10, asm20, sr, splice, splice:hq]
 ```
 
 ## Citation

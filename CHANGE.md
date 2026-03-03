@@ -1,3 +1,9 @@
+# v0.1.6 [2026-03-03]
+### Enhancement
+    - add parameter `-U`
+### Bug fixes
+    - Solve the problem of mismatch between the parameter `-f`
+
 # v0.1.5 [2026-02-05]
 ### Enhancement
     - add preset "lr:hqae"

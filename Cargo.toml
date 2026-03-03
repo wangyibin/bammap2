@@ -34,7 +34,7 @@ libc = { version = "0.2" }
 # jemallocator = { version = "0.5.4 " }
 tikv-jemallocator = "0.6.1"
 rayon = { version = "1.11.0" }
-rust-htslib = { version = "0.44", default-features = false }
+rust-htslib = { version = "0.46", default-features = false }
 needletail = "0.6.3"
 
 [profile.dev]
